@@ -12,6 +12,28 @@ library
   other-extensions:    DataKinds, TypeOperators
   build-depends:       base >=4.8 && <4.9
                      , servant-server == 0.7.*
-
+                     , servant-quickcheck
+                     , servant-client
+                     , QuickCheck
+                     , stm
+                     , containers
+                     , transformers
+                     , warp
+                     , aeson
   ghc-options:         -Wall -Werror -pgmL markdown-unlit
   default-language:    Haskell2010
+
+executable doc
+  main-is:             Main.hs
+  build-depends:       base >=4.8 && <4.9
+                     , servant-server == 0.7.*
+                     , servant-quickcheck
+                     , servant-client
+                     , QuickCheck
+                     , stm
+                     , containers
+                     , transformers
+                     , warp
+                     , aeson
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Werror -pgmL markdown-unlit
