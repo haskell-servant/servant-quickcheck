@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Servant.CoMock.InternalSpec (spec) where
+module Servant.QuickCheck.InternalSpec (spec) where
 
 import Control.Concurrent.MVar (newMVar, readMVar, swapMVar)
 import Control.Monad.IO.Class (liftIO)
@@ -8,7 +8,7 @@ import Data.Proxy
 import Servant
 import Test.Hspec
 
-import Servant.CoMock.Internal
+import Servant.QuickCheck.Internal
 
 spec :: Spec
 spec = do
