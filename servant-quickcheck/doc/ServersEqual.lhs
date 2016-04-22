@@ -20,98 +20,34 @@ don't need to know anything about Django or Python to follow along; indeed,
 part of the fun of it is using `serversEqual` to guide you through
 re-implementing code you may not entirely understand.
 
-Looking at the code, we can see the routes in `urls.py`:
-
-``` python
-urlpatterns = patterns('',
-                       url(r'^$', RedirectView.as_view(url='/todos')),
-                       url(r'^todos$', views.TodoList.as_view()),
-                       url(r'^todo/(?P<pk>[0-9]+)$', views.Todo.as_view()),
-)
-```
-
-And the handlers in `views.py`:
-
-``` python
-class TodoList(APIView):
-    def get(self, request, format=None):
-        todo_items = TodoItem.objects.all()
-        serializer = TodoItemSerializer(todo_items, many=True)
-        return JSONResponse(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, format=None):
-        serializer = TodoItemSerializer(data=request.DATA)
-        if serializer.is_valid():
-            saved_item = serializer.save()
-            saved_item.url = request.build_absolute_uri('/todo/' + str(saved_item.id))
-            saved_item.save()
-            serializer = TodoItemSerializer(instance=saved_item)
-            return JSONResponse(serializer.data, status=status.HTTP_201_CREATED)
-        return JSONResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, format=None):
-        TodoItem.objects.all().delete()
-        return JSONResponse(None, status=status.HTTP_204_NO_CONTENT)
-
-class Todo(APIView):
-    def get(self, request, pk, format=None):
-        try:
-            todoItem = TodoItem.objects.get(pk=pk)
-            serializer = TodoItemSerializer(todoItem)
-        except TodoItem.DoesNotExist:
-            return JSONResponse(None, status=status.HTTP_400_BAD_REQUEST)
-        return JSONResponse(serializer.data, status=status.HTTP_200_OK)
-
-    def delete(self, request, pk, format=None):
-        try:
-            todoItem = TodoItem.objects.get(pk=pk)
-            todoItem.delete()
-        except TodoItem.DoesNotExist:
-            return JSONResponse(None, status=status.HTTP_400_BAD_REQUEST)
-        return JSONResponse(None, status=status.HTTP_204_NO_CONTENT)
-
-    def patch(self, request, pk, format=None):
-        try:
-            todoItem = TodoItem.objects.get(pk=pk)
-        except TodoItem.DoesNotExist:
-            return JSONResponse(None, status=status.HTTP_400_BAD_REQUEST)
-        serializer = TodoItemSerializer(data=request.DATA, instance=todoItem, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return JSONResponse(serializer.data, status=status.HTTP_200_OK)
-        return JSONResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-```
-
-And from `models.py`:
-
-``` python
-
-class TodoItem(models.Model):
-    title = models.CharField(max_length=256, null=True, blank=True)
-    completed = models.NullBooleanField(null=True, blank=True, default=False)
-    url = models.CharField(max_length=256, null=True, blank=True)
-    order = models.IntegerField(null=True, blank=True)
-
-```
-
-So as a first pass, let's try:
+Looking around the codebase (`urls.py`, `models.py` and `views.py` in
+particular) may lead us to a first attempt at a rewrite:
 
 ``` haskell
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
+module ServersEqual where
+
+import Control.Concurrent (forkIO, killThread)
+import Control.Concurrent.STM as STM
+import Control.Monad.IO.Class
+import Data.Aeson (ToJSON, FromJSON)
+import Data.IntMap as M
+import GHC.Generics (Generic)
+import Network.Wai.Handler.Warp (run)
 import Servant
-import Servant.QuickCheck
-import STMContainers.Map as M
-import GHC.Conc (atomically)
-import Test.QuickCheck
+import Servant.QuickCheck (serversEqual, BaseUrl(..), Scheme(..))
+import Test.QuickCheck (Arbitrary(..))
 
 data Todo = Todo
     { title     :: String
     , completed :: Bool
     , url       :: String
     , order     :: Int
-    } deriving (Eq, Show, Read)
+    } deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 type API = TodosAPI :<|> TodoAPI
 
@@ -125,30 +61,44 @@ type TodoAPI
   =    "todo" :> Capture "id " Int :>
            ( Get '[JSON] Todo
        :<|>  ReqBody '[JSON] Todo :> Patch '[JSON] ()
-       :<|> Delete '[JSON} ())
+       :<|> Delete '[JSON] ())
 
-serverTodos :: Server TodosAPI
+serverTodos :: DB -> Server TodosAPI
 serverTodos tvar = getTodos tvar
               :<|> postTodos tvar
               :<|> deleteAllTodos tvar
 
+{-
 serverTodo :: Server TodoAPI
 serverTodo id' = getTodo tvar id'
             :<|> patchTodo tvar id'
             :<|> deleteTodo tvar id'
+-}
 
-getTodos :: Map Int Todo -> Handler [Todo]
-getTodos m = liftIO . atomically . toList $ S.stream m
+type DB = TVar (M.IntMap Todo)
 
-postTodos :: Map Int Todo -> Todo -> Handler ()
-postTodos m t = liftIO . atomically $ S.insert m t
+getTodos :: DB -> Handler [Todo]
+getTodos m = liftIO $ M.elems <$> STM.readTVarIO m
 
-deleteTodos :: Map Int Todo -> Todo -> Handler ()
-deleteTodos m t = liftIO . atomically $ S.insert m t
+postTodos :: DB -> Todo -> Handler ()
+postTodos m t = liftIO . STM.atomically $ STM.modifyTVar' m (M.insert (order t) t)
+
+deleteAllTodos :: DB -> Handler ()
+deleteAllTodos m = liftIO . STM.atomically $ STM.writeTVar m M.empty
+
+main1 :: IO ()
+main1 = do
+    db <- STM.newTVarIO M.empty
+    tId <- forkIO $ run 8000 $ serve (Proxy :: Proxy TodosAPI) $ serverTodos db
+    _ <- serversEqual (Proxy :: Proxy TodosAPI)
+                      (BaseUrl Http "localhost" 8000 "")
+                      (BaseUrl Http "localhost" 8001 "")
+                      1000
+    killThread tId
 ```
 
-(We're keeping the `Todo`s in memory for simplicity - if this were a production
- application, we'd likely want to use a database.)
+(We're keeping the `Todo`s in an `MVar` for simplicity. If this were a
+ production application, we'd likely want to use a database.)
 
 Notice that we split up the API into two sub-APIs. Partly this makes things
 cleaner and more readable, but there's also a more concrete benefit: we can
@@ -160,7 +110,16 @@ In order to check how we're doing, we need to add an `Arbitrary` instance for
 
 ``` haskell
 instance Arbitrary Todo where
-  arbitrary = Todo <$> arbitrary <$> arbitrary <$> arbitrary <$> arbitrary
+  arbitrary = Todo <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 ```
 
+Let's try it out. First we need to get the old application running:
+
+``` bash
+git clone https://github.com/mihirk/todo-backend-django.git
+cd todo-backend-django
+virtualenv venv
+. ./venv/bin/activate
+python manage.py runserver localhost:8001
+```
 

@@ -89,6 +89,11 @@ module Servant.QuickCheck
   , never500s
   , onlyJsonObjects
 
+  -- ** Re-exports
+  , BaseUrl(..)
+  , Scheme(..)
+
   ) where
 
 import Servant.QuickCheck.Internal
+import Servant.Client (BaseUrl(..), Scheme(..))
