@@ -27,7 +27,7 @@ install:
 
 script:
   - tinc && cabal configure --enable-tests && cabal build && cabal test
-  - (cd doc && tinc cabal configure --enable-tests && cabal build && cabal test)
+  #- (cd doc && tinc cabal configure --enable-tests && cabal build && cabal test)
 
 cache:
   directories:
