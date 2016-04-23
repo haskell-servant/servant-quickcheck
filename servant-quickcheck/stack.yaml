@@ -4,7 +4,6 @@ resolver: nightly-2016-04-20
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
-- 'doc'
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
 - servant-0.7
