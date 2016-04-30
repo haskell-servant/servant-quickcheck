@@ -1,8 +1,4 @@
--- | This module contains benchmark-related logic.
---
--- Currently it generates 'wrk' scripts rather than benchmarking directly with
--- the @servant-client@ functions since the performance of 'wrk' is
--- significantly better.
+-- This is a WIP module that shouldn't be used.
 module Servant.QuickCheck.Internal.Benchmarking where
 
 import Data.ByteString (ByteString)
