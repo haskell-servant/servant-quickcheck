@@ -72,6 +72,8 @@ serverSatisfiesSpec = describe "serverSatisfies" $ do
       err `shouldContain` "Headers"
       err `shouldContain` "Body"
 
+  it "generates unbiased requests" $ do
+
 onlyJsonObjectSpec :: Spec
 onlyJsonObjectSpec = describe "onlyJsonObjects" $ do
 
@@ -131,6 +133,43 @@ server2 = return $ return 1
 
 server3 :: IO (Server API2)
 server3 = return $ return 2
+
+type LargeAPI
+  =    Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+  :<|> Get '[JSON] Int
+
+largeServer :: Large LargeAPI
+largeServer
+  =    return 1
+  :<|> return 2
+  :<|> return 3
+  :<|> return 4
+  :<|> return 5
+  :<|> return 6
+  :<|> return 7
+  :<|> return 8
+  :<|> return 9
+  :<|> return 10
+  :<|> return 11
+  :<|> return 12
+  :<|> return 13
+  :<|> return 14
+  :<|> return 15
+  :<|> return 16
 
 ctx :: Context '[BasicAuthCheck ()]
 ctx = BasicAuthCheck (const . return $ NoSuchUser) :. EmptyContext
