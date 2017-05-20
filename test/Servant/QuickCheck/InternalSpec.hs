@@ -19,6 +19,7 @@ import Test.Hspec.Core.Spec                       (Arg, Example, Result (..),
 import Servant.QuickCheck
 import Servant.QuickCheck.Internal (genRequest, serverDoesntSatisfy)
 
+
 spec :: Spec
 spec = do
   serversEqualSpec
@@ -36,8 +37,6 @@ serversEqualSpec = describe "serversEqual" $ do
         serversEqual api burl1 burl2 args bodyEquality
 
   context "when servers are not equal" $ do
-
-
     it "provides the failing responses in the error message" $ do
       Fail _ err <- withServantServer api2 server2 $ \burl1 ->
         withServantServer api2 server3 $ \burl2 -> do
@@ -67,12 +66,12 @@ serverSatisfiesSpec = describe "serverSatisfies" $ do
 
     it "fails with informative error messages" $ do
       Fail _ err <- withServantServerAndContext api ctx server $ \burl -> do
-        evalExample $ serverSatisfies api burl args (getsHaveCacheControlHeader <%> mempty)
-      err `shouldContain` "getsHaveCacheControlHeader"
+        evalExample $ serverSatisfies api burl args (notAllowedContainsAllowHeader <%> mempty)
+      err `shouldContain` "notAllowedContainsAllowHeader"
       err `shouldContain` "Headers"
       err `shouldContain` "Body"
 
-  it "generates unbiased requests" $ do
+  -- it "generates unbiased requests" $ do
 
 onlyJsonObjectSpec :: Spec
 onlyJsonObjectSpec = describe "onlyJsonObjects" $ do
@@ -152,7 +151,7 @@ type LargeAPI
   :<|> Get '[JSON] Int
   :<|> Get '[JSON] Int
 
-largeServer :: Large LargeAPI
+largeServer :: Server LargeAPI
 largeServer
   =    return 1
   :<|> return 2

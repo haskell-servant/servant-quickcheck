@@ -14,7 +14,7 @@ import Prelude.Compat
 import Servant
 import Servant.API.ContentTypes (AllMimeRender (..))
 import Servant.Client           (BaseUrl (..), Scheme (..))
-import Test.QuickCheck          (Arbitrary (..), Gen, elements, frequency)
+import Test.QuickCheck          (Arbitrary (..), Gen, elements, oneof, frequency)
 #if MIN_VERSION_servant(0,8,0)
 import qualified Data.ByteString as BS
 #endif
