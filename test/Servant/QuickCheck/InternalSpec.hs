@@ -23,7 +23,7 @@ import Servant.API.Internal.Test.ComprehensiveAPI (ComprehensiveAPI,
 #endif
 
 import Servant.QuickCheck
-import Servant.QuickCheck.Internal (genRequest, serverDoesntSatisfy)
+import Servant.QuickCheck.Internal (genRequest, runGenRequest, serverDoesntSatisfy)
 
 
 spec :: Spec
@@ -121,7 +121,7 @@ deepPathSpec = describe "Path components" $ do
   it "are separated by slashes, without a trailing slash" $ do
     let rng = mkQCGen 0
         burl = BaseUrl Http "localhost" 80 ""
-        gen = genRequest deepAPI
+        gen = runGenRequest deepAPI
         req = (unGen gen rng 0) burl
     path req `shouldBe` ("/one/two/three")
 
@@ -132,7 +132,7 @@ queryParamsSpec = describe "QueryParams" $ do
   it "reduce to an HTTP query string correctly" $ do
     let rng = mkQCGen 0
         burl = BaseUrl Http "localhost" 80 ""
-        gen = genRequest paramsAPI
+        gen = runGenRequest paramsAPI
         req = (unGen gen rng 0) burl
         qs = C.unpack $ queryString req
     qs `shouldBe` "one=_&two=_"
@@ -143,7 +143,7 @@ queryFlagsSpec = describe "QueryFlags" $ do
   it "reduce to an HTTP query string correctly" $ do
     let rng = mkQCGen 0
         burl = BaseUrl Http "localhost" 80 ""
-        gen = genRequest flagsAPI
+        gen = runGenRequest flagsAPI
         req = (unGen gen rng 0) burl
         qs = C.unpack $ queryString req
     qs `shouldBe` "one&two"

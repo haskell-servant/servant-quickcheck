@@ -15,18 +15,18 @@ import Servant
 import Servant.API.ContentTypes (AllMimeRender (..))
 import Servant.Client           (BaseUrl (..), Scheme (..))
 import Test.QuickCheck          (Arbitrary (..), Gen, elements, oneof, frequency)
-#if MIN_VERSION_servant(0,8,0)
+
 import qualified Data.ByteString as BS
-#endif
+import qualified Data.ByteString.Internal as BS (c2w)
+
 
 runGenRequest :: HasGenRequest a => Proxy a -> Gen (BaseUrl -> Request)
 runGenRequest = snd . genRequest
 
 
 class HasGenRequest a where
-                        --  frequency   generator
-                        --    vvv         vvv
     genRequest :: Proxy a -> (Int, Gen (BaseUrl -> Request))
+
 
 instance (HasGenRequest a, HasGenRequest b) => HasGenRequest (a :<|> b) where
     genRequest _
@@ -35,13 +35,19 @@ instance (HasGenRequest a, HasGenRequest b) => HasGenRequest (a :<|> b) where
         l@(lf, _) = genRequest (Proxy :: Proxy a)
         r@(rf, _) = genRequest (Proxy :: Proxy a)
 
+
 instance (KnownSymbol path, HasGenRequest b) => HasGenRequest (path :> b) where
     genRequest _ = (oldf, do
       old' <- old
-      return $ \burl -> let r = old' burl in r { path = new <> path r })
+      return $ \burl -> let r = old' burl
+                            oldPath = path r
+                            oldPath' = BS.dropWhile (== BS.c2w '/') oldPath
+                            paths = filter (not . BS.null) [new, oldPath']
+                            in r { path = "/" <> BS.intercalate "/" paths })
       where
         (oldf, old) = genRequest (Proxy :: Proxy b)
         new = cs $ symbolVal (Proxy :: Proxy path)
+
 
 instance (Arbitrary c, HasGenRequest b, ToHttpApiData c )
     => HasGenRequest (Capture x c :> b) where
@@ -97,9 +103,10 @@ instance (KnownSymbol x, Arbitrary c, ToHttpApiData c, HasGenRequest b)
     genRequest _ = (oldf, do
       new' <- new
       old' <- old
-      return $ \burl -> let r = old' burl in r {
-          queryString = queryString r
-                     <> param <> "=" <> cs (toQueryParam new') })
+      return $ \burl -> let r = old' burl
+                            newExpr = param <> "=" <> cs (toQueryParam new')
+                            qs = queryString r in r {
+          queryString = if BS.null qs then newExpr else newExpr <> "&" <> qs })
       where
         (oldf, old) = genRequest (Proxy :: Proxy b)
         param = cs $ symbolVal (Proxy :: Proxy x)
@@ -124,8 +131,9 @@ instance (KnownSymbol x, HasGenRequest b)
     => HasGenRequest (QueryFlag x :> b) where
     genRequest _ = (oldf, do
       old' <- old
-      return $ \burl -> let r = old' burl in r {
-          queryString = queryString r <> param <> "=" })
+      return $ \burl -> let r = old' burl
+                            qs = queryString r in r {
+          queryString = if BS.null qs then param else param <> "&" <> qs })
       where
         (oldf, old) = genRequest (Proxy :: Proxy b)
         param = cs $ symbolVal (Proxy :: Proxy x)
