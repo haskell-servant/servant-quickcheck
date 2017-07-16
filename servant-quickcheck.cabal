@@ -1,5 +1,5 @@
 name:                servant-quickcheck
-version:             0.0.2.0
+version:             0.0.2.4
 synopsis:            QuickCheck entire APIs
 description:
  This packages provides QuickCheck properties that are tested across an entire
@@ -38,7 +38,7 @@ library
                      , case-insensitive == 1.2.*
                      , clock >= 0.7 && < 0.8
                      , data-default-class >= 0.0 && < 0.2
-                     , hspec == 2.2.*
+                     , hspec >= 2.2 && < 2.4
                      , http-client >= 0.4.30 && < 0.6
                      , http-media == 0.6.*
                      , http-types > 0.8 && < 0.10
@@ -85,6 +85,7 @@ test-suite spec
   build-depends:       base == 4.*
                      , base-compat
                      , servant-quickcheck
+                     , bytestring
                      , hspec
                      , hspec-core
                      , http-client

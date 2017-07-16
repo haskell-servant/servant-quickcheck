@@ -1,26 +1,53 @@
 upcoming:
 
-  changes:
-
-    - description: Add notLongerThan predicate
-      pr: 17
-      authors: jkarni
-      date: 2016-10-05
-
-    - description: Add getsHaveLastModifiedHeader predicate
-      pr: none
-      authors: jkarni
-      date: 2016-10-03
-
-    - description: Raise upper bounds 
-      notes: >
-          For Quickcheck, aeson, http-client, servant, servant-client and 
-          servant-server.
-      pr: none
-      authors: jkarni
-      date: 2016-10-03
-
 releases:
+
+  - version: "0.0.2.4"
+    changes:
+
+      - description: Don't append slashes to paths
+        issue: 22
+        authors: declension
+        date: 2017-03-11
+
+  - version: "0.0.2.3"
+    changes:
+
+      - description: Fix QueryParam and QueryFlag requests
+        issue: 23
+        authors: declension
+        date: 2017-03-10
+
+  - version: "0.0.2.2"
+    changes:
+
+      - description: Make onlyJsonObjects succeed in non-JSON endpoints
+        issue: 20
+        authors: jkarni
+        date: 2016-10-18
+
+
+  - version: "0.0.2.1"
+    changes:
+
+      - description: Add notLongerThan predicate
+        pr: 17
+        authors: jkarni
+        date: 2016-10-05
+
+      - description: Add getsHaveLastModifiedHeader predicate
+        pr: none
+        authors: jkarni
+        date: 2016-10-03
+
+      - description: Raise upper bounds
+        notes: >
+            For Quickcheck, aeson, http-client, servant, servant-client and
+            servant-server.
+        pr: none
+        authors: jkarni
+        date: 2016-10-03
+
 
   - version: "0.0.2.0"
     changes:

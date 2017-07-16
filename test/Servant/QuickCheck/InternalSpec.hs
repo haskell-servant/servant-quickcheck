@@ -1,20 +1,26 @@
 {-# LANGUAGE CPP #-}
 module Servant.QuickCheck.InternalSpec (spec) where
 
-import Control.Concurrent.MVar                    (newMVar, readMVar, swapMVar)
-import Control.Monad.IO.Class                     (liftIO)
-import Prelude.Compat
-import Servant
+import           Control.Concurrent.MVar (newMVar, readMVar, swapMVar)
+import           Control.Monad.IO.Class  (liftIO)
+import qualified Data.ByteString         as BS
+import qualified Data.ByteString.Char8   as C
+import           Prelude.Compat
+import           Servant
+import           Test.Hspec              (Spec, context, describe, it, shouldBe,
+                                          shouldContain)
+import           Test.Hspec.Core.Spec    (Arg, Example, Result (..),
+                                          defaultParams, evaluateExample)
+import           Test.QuickCheck.Gen     (unGen)
+import           Test.QuickCheck.Random  (mkQCGen)
+import           Network.HTTP.Client     (queryString, path)
+
 #if MIN_VERSION_servant(0,8,0)
 import Servant.API.Internal.Test.ComprehensiveAPI (comprehensiveAPIWithoutRaw)
 #else
-import Servant.API.Internal.Test.ComprehensiveAPI (comprehensiveAPI, ComprehensiveAPI)
+import Servant.API.Internal.Test.ComprehensiveAPI (ComprehensiveAPI,
+                                                   comprehensiveAPI)
 #endif
-import Test.Hspec                                 (Spec, context, describe, it,
-                                                   shouldBe, shouldContain)
-import Test.Hspec.Core.Spec                       (Arg, Example, Result (..),
-                                                   defaultParams,
-                                                   evaluateExample)
 
 import Servant.QuickCheck
 import Servant.QuickCheck.Internal (genRequest, serverDoesntSatisfy)
@@ -27,6 +33,9 @@ spec = do
   isComprehensiveSpec
   onlyJsonObjectSpec
   notLongerThanSpec
+  queryParamsSpec
+  queryFlagsSpec
+  deepPathSpec
 
 serversEqualSpec :: Spec
 serversEqualSpec = describe "serversEqual" $ do
@@ -43,7 +52,7 @@ serversEqualSpec = describe "serversEqual" $ do
           evalExample $ serversEqual api2 burl1 burl2 args bodyEquality
       show err `shouldContain` "Body: 1"
       show err `shouldContain` "Body: 2"
-      show err `shouldContain` "Path: failplz/"
+      show err `shouldContain` "Path: /failplz"
 
 serverSatisfiesSpec :: Spec
 serverSatisfiesSpec = describe "serverSatisfies" $ do
@@ -82,6 +91,10 @@ onlyJsonObjectSpec = describe "onlyJsonObjects" $ do
         (onlyJsonObjects <%> mempty)
     err `shouldContain` "onlyJsonObjects"
 
+  it "accepts non-JSON endpoints" $ do
+    withServantServerAndContext octetAPI ctx serverOctetAPI $ \burl ->
+      serverSatisfies octetAPI burl args (onlyJsonObjects <%> mempty)
+
 notLongerThanSpec :: Spec
 notLongerThanSpec = describe "notLongerThan" $ do
 
@@ -102,6 +115,38 @@ isComprehensiveSpec = describe "HasGenRequest" $ do
     let _g = genRequest comprehensiveAPIWithoutRaw
     True `shouldBe` True -- This is a type-level check
 
+deepPathSpec :: Spec
+deepPathSpec = describe "Path components" $ do
+
+  it "are separated by slashes, without a trailing slash" $ do
+    let rng = mkQCGen 0
+        burl = BaseUrl Http "localhost" 80 ""
+        gen = genRequest deepAPI
+        req = (unGen gen rng 0) burl
+    path req `shouldBe` ("/one/two/three")
+
+
+queryParamsSpec :: Spec
+queryParamsSpec = describe "QueryParams" $ do
+
+  it "reduce to an HTTP query string correctly" $ do
+    let rng = mkQCGen 0
+        burl = BaseUrl Http "localhost" 80 ""
+        gen = genRequest paramsAPI
+        req = (unGen gen rng 0) burl
+        qs = C.unpack $ queryString req
+    qs `shouldBe` "one=_&two=_"
+
+queryFlagsSpec :: Spec
+queryFlagsSpec = describe "QueryFlags" $ do
+
+  it "reduce to an HTTP query string correctly" $ do
+    let rng = mkQCGen 0
+        burl = BaseUrl Http "localhost" 80 ""
+        gen = genRequest flagsAPI
+        req = (unGen gen rng 0) burl
+        qs = C.unpack $ queryString req
+    qs `shouldBe` "one&two"
 
 ------------------------------------------------------------------------------
 -- APIs
@@ -113,6 +158,17 @@ type API = ReqBody '[JSON] String :> Post '[JSON] String
 
 api :: Proxy API
 api = Proxy
+
+type ParamsAPI = QueryParam "one" () :> QueryParam "two" () :> Get '[JSON] ()
+
+paramsAPI :: Proxy ParamsAPI
+paramsAPI = Proxy
+
+type FlagsAPI = QueryFlag "one" :> QueryFlag "two" :> Get '[JSON] ()
+
+flagsAPI :: Proxy FlagsAPI
+flagsAPI = Proxy
+
 
 server :: IO (Server API)
 server = do
@@ -126,6 +182,12 @@ type API2 = "failplz" :> Get '[JSON] Int
 
 api2 :: Proxy API2
 api2 = Proxy
+
+type DeepAPI = "one" :> "two" :> "three":> Get '[JSON] ()
+
+deepAPI :: Proxy DeepAPI
+deepAPI = Proxy
+
 
 server2 :: IO (Server API2)
 server2 = return $ return 1
@@ -169,6 +231,14 @@ largeServer
   :<|> return 14
   :<|> return 15
   :<|> return 16
+
+type OctetAPI = Get '[OctetStream] BS.ByteString
+
+octetAPI :: Proxy OctetAPI
+octetAPI = Proxy
+
+serverOctetAPI :: IO (Server OctetAPI)
+serverOctetAPI = return $ return "blah"
 
 ctx :: Context '[BasicAuthCheck ()]
 ctx = BasicAuthCheck (const . return $ NoSuchUser) :. EmptyContext
