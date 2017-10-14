@@ -1,19 +1,21 @@
 {-# LANGUAGE CPP #-}
 module Servant.QuickCheck.InternalSpec (spec) where
 
-import           Control.Concurrent.MVar (newMVar, readMVar, swapMVar)
-import           Control.Monad.IO.Class  (liftIO)
-import qualified Data.ByteString         as BS
-import qualified Data.ByteString.Char8   as C
+import           Control.Concurrent.MVar      (newMVar, readMVar, swapMVar)
+import           Control.Monad                (replicateM)
+import           Control.Monad.IO.Class       (liftIO)
+import qualified Data.ByteString              as BS
+import qualified Data.ByteString.Char8        as C
+import           Data.Maybe                   (fromJust)
 import           Prelude.Compat
 import           Servant
-import           Test.Hspec              (Spec, context, describe, it, shouldBe,
-                                          shouldContain)
-import           Test.Hspec.Core.Spec    (Arg, Example, Result (..),
-                                          defaultParams, evaluateExample)
-import           Test.QuickCheck.Gen     (unGen)
-import           Test.QuickCheck.Random  (mkQCGen)
-import           Network.HTTP.Client     (queryString, path)
+import           Test.Hspec                   (Spec, context, describe, it, shouldBe,
+                                               shouldContain)
+import           Test.Hspec.Core.Spec         (Arg, Example, Result (..),
+                                               defaultParams, evaluateExample)
+import           Test.QuickCheck.Gen          (unGen, generate)
+import           Test.QuickCheck.Random       (mkQCGen)
+import           Network.HTTP.Client          (queryString, path)
 
 #if MIN_VERSION_servant(0,8,0)
 import Servant.API.Internal.Test.ComprehensiveAPI (comprehensiveAPIWithoutRaw)
@@ -36,6 +38,7 @@ spec = do
   queryParamsSpec
   queryFlagsSpec
   deepPathSpec
+  unbiasedGenerationSpec
 
 serversEqualSpec :: Spec
 serversEqualSpec = describe "serversEqual" $ do
@@ -80,7 +83,6 @@ serverSatisfiesSpec = describe "serverSatisfies" $ do
       err `shouldContain` "Headers"
       err `shouldContain` "Body"
 
-  -- it "generates unbiased requests" $ do
 
 onlyJsonObjectSpec :: Spec
 onlyJsonObjectSpec = describe "onlyJsonObjects" $ do
@@ -148,6 +150,28 @@ queryFlagsSpec = describe "QueryFlags" $ do
         qs = C.unpack $ queryString req
     qs `shouldBe` "one&two"
 
+makeRandomRequest :: Proxy LargeAPI -> BaseUrl -> IO Integer
+makeRandomRequest large burl = do
+  req <- generate $ runGenRequest large
+  pure $ fst . fromJust . C.readInteger . C.drop 1 . path $ req burl
+
+
+unbiasedGenerationSpec :: Spec
+unbiasedGenerationSpec = describe "Unbiased Generation of requests" $
+
+  it "frequency paired with generated endpoint should be more randomly distributed" $ do
+    let burl = BaseUrl Http "localhost" 80 ""
+    let runs = 10000 :: Double
+    someRequests <- replicateM 10000 (makeRandomRequest largeApi burl)
+    let mean = (sum $ map fromIntegral someRequests) / runs
+    let variancer x = let ix = fromIntegral x in (ix - mean) * (ix - mean)
+    let variance = (sum $ map variancer someRequests) / runs - 1
+    -- mean should be around 8
+    mean > 7 `shouldBe` True
+    mean < 9 `shouldBe` True
+    -- Std dev is likely around 4. Variance is probably greater than 20.
+    variance > 19.5 `shouldBe` True
+
 ------------------------------------------------------------------------------
 -- APIs
 ------------------------------------------------------------------------------
@@ -195,42 +219,28 @@ server2 = return $ return 1
 server3 :: IO (Server API2)
 server3 = return $ return 2
 
-type LargeAPI
-  =    Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
-  :<|> Get '[JSON] Int
 
-largeServer :: Server LargeAPI
-largeServer
-  =    return 1
-  :<|> return 2
-  :<|> return 3
-  :<|> return 4
-  :<|> return 5
-  :<|> return 6
-  :<|> return 7
-  :<|> return 8
-  :<|> return 9
-  :<|> return 10
-  :<|> return 11
-  :<|> return 12
-  :<|> return 13
-  :<|> return 14
-  :<|> return 15
-  :<|> return 16
+largeApi :: Proxy LargeAPI
+largeApi = Proxy
+
+type LargeAPI
+  =    "1" :> Get '[JSON] Int
+  :<|> "2" :> Get '[JSON] Int
+  :<|> "3" :> Get '[JSON] Int
+  :<|> "4" :> Get '[JSON] Int
+  :<|> "5" :> Get '[JSON] Int
+  :<|> "6" :> Get '[JSON] Int
+  :<|> "7" :> Get '[JSON] Int
+  :<|> "8" :> Get '[JSON] Int
+  :<|> "9" :> Get '[JSON] Int
+  :<|> "10" :> Get '[JSON] Int
+  :<|> "11" :> Get '[JSON] Int
+  :<|> "12" :> Get '[JSON] Int
+  :<|> "13" :> Get '[JSON] Int
+  :<|> "14" :> Get '[JSON] Int
+  :<|> "15" :> Get '[JSON] Int
+  :<|> "16" :> Get '[JSON] Int
+
 
 type OctetAPI = Get '[OctetStream] BS.ByteString
 

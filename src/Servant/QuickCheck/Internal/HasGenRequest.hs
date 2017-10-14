@@ -14,16 +14,32 @@ import Prelude.Compat
 import Servant
 import Servant.API.ContentTypes (AllMimeRender (..))
 import Servant.Client           (BaseUrl (..), Scheme (..))
-import Test.QuickCheck          (Arbitrary (..), Gen, elements, oneof, frequency)
+import Test.QuickCheck          (Arbitrary (..), Gen, elements, frequency)
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS (c2w)
 
 
+-- -----------------------------------------------------------------------------
+-- runGenRequest
+
+-- | This function returns a QuickCheck `Gen a` when passed a servant API value,
+-- typically a `Proxy API`. The generator returned is a function
+-- that accepts a `BaseUrl` and returns a `Request`, which can then be used
+-- to issue network requests. This `Gen` type makes it easier to compare distinct
+-- APIs across different `BaseUrl`s.
 runGenRequest :: HasGenRequest a => Proxy a -> Gen (BaseUrl -> Request)
 runGenRequest = snd . genRequest
 
 
+-- -----------------------------------------------------------------------------
+-- HasGenRequest
+
+-- | This is the core Servant-Quickcheck generator, which, when given a `Proxy API`
+-- will return a pair of `Int` and `Gen a`, where `a` is a function from
+-- `BaseUrl` to a `Network.Http.Client.Request`. The `Int` is a weight for the
+-- QuickCheck `frequency` function which ensures a random distribution across
+-- all endpoints in an API.
 class HasGenRequest a where
     genRequest :: Proxy a -> (Int, Gen (BaseUrl -> Request))
 
@@ -33,7 +49,7 @@ instance (HasGenRequest a, HasGenRequest b) => HasGenRequest (a :<|> b) where
       = (lf + rf, frequency [l, r])
       where
         l@(lf, _) = genRequest (Proxy :: Proxy a)
-        r@(rf, _) = genRequest (Proxy :: Proxy a)
+        r@(rf, _) = genRequest (Proxy :: Proxy b)
 
 
 instance (KnownSymbol path, HasGenRequest b) => HasGenRequest (path :> b) where
