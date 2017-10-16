@@ -7,7 +7,7 @@ import           Data.Bifunctor        (first)
 import qualified Data.ByteString       as SBS
 import qualified Data.ByteString.Char8 as SBSC
 import qualified Data.ByteString.Lazy  as LBS
-import           Data.CaseInsensitive  (mk, foldedCase)
+import           Data.CaseInsensitive  (mk, foldedCase, foldCase)
 import           Data.Either           (isRight)
 import           Data.List.Split       (wordsBy)
 import           Data.Maybe            (fromMaybe, isJust)
@@ -337,6 +337,23 @@ unauthorizedContainsWWWAuthenticate
       if responseStatus resp == status401
         then unless (hasValidHeader "WWW-Authenticate" (const True) resp) $
           fail "unauthorizedContainsWWWAuthenticate"
+        else return ()
+
+
+-- | [__Best Practice__]
+--
+-- Checks that HTML documents (those with `Content-Type: text/html...`)
+-- include a DOCTYPE declaration at the top.
+--
+-- /Since 0.3.0.0/
+htmlIncludesDoctype :: ResponsePredicate
+htmlIncludesDoctype
+  = ResponsePredicate $ \resp ->
+      if hasValidHeader "Content-Type" (SBS.isPrefixOf . foldCase $ "text/html") resp
+        then do
+            let htmlContent = foldCase $ responseBody resp
+            unless (LBS.isPrefixOf (foldCase "<!doctype html>") htmlContent) $
+              fail "htmlIncludesDoctype"
         else return ()
 
 -- * Predicate logic
