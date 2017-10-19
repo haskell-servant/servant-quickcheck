@@ -341,11 +341,16 @@ unauthorizedContainsWWWAuthenticate
         else return ()
 
 
--- | [__Best Practice__]
+-- | [__RFC Compliance__]
 --
--- Checks that HTML documents (those with `Content-Type: text/html...`)
--- include a DOCTYPE declaration at the top.
+-- [An HTML] document will start with exactly this string: <!DOCTYPE html>
 --
+-- This function checks that HTML documents (those with `Content-Type: text/html...`)
+-- include a DOCTYPE declaration at the top. We do not enforce capital case for the string `DOCTYPE`.
+--
+-- __References__:
+--
+--  * HTML5 Doctype: <https://tools.ietf.org/html/rfc7992#section-6.1 RFC 7992 Section 6.1>
 -- /Since 0.3.0.0/
 htmlIncludesDoctype :: ResponsePredicate
 htmlIncludesDoctype
