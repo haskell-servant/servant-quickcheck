@@ -12,7 +12,7 @@ import           Prelude.Compat
 import           Text.PrettyPrint
 
 data PredicateFailure
-  = PredicateFailure T.Text (Maybe C.Request) (C.Response LBS.ByteString)
+  = PredicateFailure T.Text (C.Request) (C.Response LBS.ByteString)
   deriving (Typeable, Generic)
 
 instance Exception ServerEqualityFailure where
@@ -71,10 +71,5 @@ prettyPredicateFailure :: PredicateFailure -> Doc
 prettyPredicateFailure (PredicateFailure predicate req resp) =
   text "Predicate failed" $$ (nest 5 $
      text "Predicate:" <+> (text $ T.unpack predicate)
-  $$ r
+  $$ prettyReq req
   $$ prettyResp resp)
-  where
-    r = case req of
-      Nothing -> text ""
-      Just v  -> prettyReq v
-

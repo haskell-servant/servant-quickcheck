@@ -46,11 +46,13 @@ spec = do
   serversEqualSpec
   serverSatisfiesSpec
   isComprehensiveSpec
+  no500s
   onlyJsonObjectSpec
   notLongerThanSpec
   queryParamsSpec
   queryFlagsSpec
   deepPathSpec
+  authServerCheck
   htmlDocTypesSpec
   unbiasedGenerationSpec
 
@@ -127,6 +129,15 @@ serverSatisfiesSpec = describe "serverSatisfies" $ do
       show err `shouldContain` "Body"
 
 
+no500s :: Spec
+no500s = describe "no500s" $ do
+
+  it "fails correctly" $ do
+    FailedWith err <- withServantServerAndContext api2 ctx server500fail $ \burl -> do
+      evalExample $ serverSatisfies api2 burl args
+        (not500 <%> mempty)
+    show err `shouldContain` "not500"
+
 onlyJsonObjectSpec :: Spec
 onlyJsonObjectSpec = describe "onlyJsonObjects" $ do
 
@@ -193,6 +204,17 @@ queryFlagsSpec = describe "QueryFlags" $ do
         qs = C.unpack $ queryString req
     qs `shouldBe` "one&two"
 
+authServerCheck :: Spec
+authServerCheck = describe "authenticate endpoints" $ do
+
+  it "authorization failure without WWWAuthenticate header fails correctly" $ do
+    FailedWith err <- withServantServerAndContext api2 ctx authFailServer $ \burl -> do
+      evalExample $ serverSatisfies api2 burl args
+        (unauthorizedContainsWWWAuthenticate <%> mempty)
+    show err `shouldContain` "unauthorizedContainsWWWAuthenticate"
+
+
+-- Large API Randomness Testing Helper
 htmlDocTypesSpec :: Spec
 htmlDocTypesSpec = describe "HtmlDocTypes" $ do
 
@@ -216,7 +238,6 @@ makeRandomRequest :: Proxy LargeAPI -> BaseUrl -> IO Integer
 makeRandomRequest large burl = do
   req <- generate $ runGenRequest large
   pure $ fst . fromJust . C.readInteger . C.drop 1 . path $ req burl
-
 
 unbiasedGenerationSpec :: Spec
 unbiasedGenerationSpec = describe "Unbiased Generation of requests" $
@@ -274,12 +295,17 @@ type DeepAPI = "one" :> "two" :> "three":> Get '[JSON] ()
 deepAPI :: Proxy DeepAPI
 deepAPI = Proxy
 
-
 server2 :: IO (Server API2)
 server2 = return $ return 1
 
 server3 :: IO (Server API2)
 server3 = return $ return 2
+
+server500fail :: IO (Server API2)
+server500fail = return $ throwError $ err500 { errBody = "BOOM!" }
+
+authFailServer :: IO (Server API2)
+authFailServer = return $ throwError $ err401 { errBody = "Login failure but missing header"}
 
 -- With Doctypes
 type HtmlDoctype = Get '[HTML] Blaze.Html
@@ -292,7 +318,6 @@ docTypeServer = pure $ pure $ Blaze5.docTypeHtml $ Blaze5.span "Hello Test!"
 
 noDocTypeServer :: IO (Server HtmlDoctype)
 noDocTypeServer = pure $ pure $ Blaze.text "Hello Test!"
-
 
 -- Api for unbiased generation of requests tests
 largeApi :: Proxy LargeAPI
