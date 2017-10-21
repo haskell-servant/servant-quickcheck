@@ -357,7 +357,7 @@ htmlIncludesDoctype
   = ResponsePredicate $ \resp ->
       if hasValidHeader "Content-Type" (SBS.isPrefixOf . foldCase $ "text/html") resp
         then do
-            let htmlContent = foldCase $ responseBody resp
+            let htmlContent = foldCase . LBS.take 20 $ responseBody resp
             unless (LBS.isPrefixOf (foldCase "<!doctype html>") htmlContent) $
               throw $ PredicateFailure "htmlIncludesDoctype" Nothing resp
         else return ()
