@@ -123,11 +123,11 @@ serverSatisfiesMgr api manager burl args preds = do
   let reqs = ($ burl) <$> runGenRequest api
   deetsMVar <- newEmptyMVar
   r <- quickCheckWithResult args { chatty = False } $ monadicIO $ forAllM reqs $ \req -> do
-     v <- run $ finishPredicates preds (noCheckStatus req) manager
-     _ <- run $ tryPutMVar deetsMVar v
-     case v of
-       Just _ -> assert False
-       _ -> return ()
+    v <- run $ finishPredicates preds (noCheckStatus req) manager
+    _ <- run $ tryPutMVar deetsMVar v
+    case v of
+      Just _ -> assert False
+      _ -> return ()
   case r of
     Success {} -> return ()
     Failure {..} -> do
