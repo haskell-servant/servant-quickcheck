@@ -129,8 +129,10 @@ serverSatisfies api burl args preds = do
     Failure {..} -> do
       mx <- tryReadMVar deetsMVar
       case mx of
-        Just x -> expectationFailure $ "Failed:\n" ++ show x
-        Nothing -> expectationFailure $ "Failed to retrieve error. QC Failure: " <> show r
+        Just x ->
+          expectationFailure $ "Failed:\n" ++ show x
+        Nothing ->
+          expectationFailure $ "We failed to record a reason for failure: " <> show r
     GaveUp { numTests = n } -> expectationFailure $ "Gave up after " ++ show n ++ " tests"
     NoExpectedFailure {} -> expectationFailure $ "No expected failure"
     InsufficientCoverage {} -> expectationFailure $ "Insufficient coverage"
