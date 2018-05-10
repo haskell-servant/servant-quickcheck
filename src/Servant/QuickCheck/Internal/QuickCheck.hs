@@ -117,6 +117,12 @@ serverSatisfies :: (HasGenRequest a) =>
   Proxy a -> BaseUrl -> Args -> Predicates -> Expectation
 serverSatisfies api =  serverSatisfiesMgr api defManager
 
+-- | Check that a server satisfies the set of properties specified, and
+-- accept a 'Manager' for running the HTTP requests through.
+--
+-- See 'serverSatisfies' for more details.
+--
+-- @since 0.0.7.2
 serverSatisfiesMgr :: (HasGenRequest a) =>
   Proxy a -> C.Manager -> BaseUrl -> Args -> Predicates -> Expectation
 serverSatisfiesMgr api manager burl args preds = do
