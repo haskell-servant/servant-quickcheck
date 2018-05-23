@@ -15,9 +15,7 @@ import Servant.API.ContentTypes (AllMimeRender (..))
 import Servant.Client           (BaseUrl (..), Scheme (..))
 import Test.QuickCheck          (Arbitrary (..), Gen, elements, frequency)
 
-#if __GLASGOW_HASKELL__ <= 800
 import Data.Monoid ((<>))
-#endif
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS (c2w)
