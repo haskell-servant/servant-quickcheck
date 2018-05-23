@@ -19,6 +19,10 @@ import           Test.QuickCheck.Monadic  (assert, forAllM, monadicIO, monitor,
                                            run)
 import           Test.QuickCheck.Property (counterexample)
 
+#if __GLASGOW_HASKELL__ <= 800
+import Data.Monoid ((<>))
+#endif
+
 import Servant.QuickCheck.Internal.Equality
 import Servant.QuickCheck.Internal.ErrorTypes
 import Servant.QuickCheck.Internal.HasGenRequest

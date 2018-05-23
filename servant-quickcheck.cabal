@@ -106,7 +106,7 @@ test-suite spec
                      , servant-client
                      , servant
                      , servant-blaze
-                     , transformers
+                     -- , transformers
                      , QuickCheck
                      , quickcheck-io
   default-extensions:  TypeOperators
