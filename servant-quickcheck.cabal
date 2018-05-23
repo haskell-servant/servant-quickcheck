@@ -37,7 +37,7 @@ library
                      , Servant.QuickCheck.Internal.Equality
                      , Servant.QuickCheck.Internal.ErrorTypes
   build-depends:       base >=4.8 && <4.12
-                     , base-compat-batteries >= 0.10.1 && <0.11
+                     , base-compat >= 0.10.1 && <0.11
                      , aeson > 0.8 && < 2
                      , bytestring == 0.10.*
                      , case-insensitive == 1.2.*
@@ -93,7 +93,7 @@ test-suite spec
   other-modules:       Servant.QuickCheck.InternalSpec
   build-tool-depends:  hspec-discover:hspec-discover
   build-depends:       base
-                     , base-compat-batteries
+                     , base-compat
                      , aeson
                      , servant-quickcheck
                      , bytestring

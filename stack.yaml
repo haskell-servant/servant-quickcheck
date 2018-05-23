@@ -2,7 +2,6 @@ resolver: lts-11.8
 packages:
 - '.'
 extra-deps:
-- base-compat-batteries-0.10.1
 - base-compat-0.10.1
 - hspec-discover-2.5.0
 - hspec-core-2.5.0
