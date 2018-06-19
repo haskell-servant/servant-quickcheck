@@ -15,6 +15,8 @@ import Servant.API.ContentTypes (AllMimeRender (..))
 import Servant.Client           (BaseUrl (..), Scheme (..))
 import Test.QuickCheck          (Arbitrary (..), Gen, elements, frequency)
 
+import Data.Monoid ((<>))
+
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS (c2w)
 
