@@ -97,7 +97,7 @@ test-suite spec
   other-modules:       Servant.QuickCheck.InternalSpec
   build-tool-depends:  hspec-discover:hspec-discover
   build-depends:       base
-                     , base-compat-batteries
+                     , base-compat
                      , aeson
                      , servant-quickcheck
                      , bytestring
