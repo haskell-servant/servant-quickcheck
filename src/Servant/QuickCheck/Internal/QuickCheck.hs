@@ -18,6 +18,7 @@ import           Test.QuickCheck          (Args (..),  Result (..), quickCheckWi
 import           Test.QuickCheck.Monadic  (assert, forAllM, monadicIO, monitor,
                                            run)
 import           Test.QuickCheck.Property (counterexample)
+import Data.Monoid ((<>))
 
 import Servant.QuickCheck.Internal.Equality
 import Servant.QuickCheck.Internal.ErrorTypes
