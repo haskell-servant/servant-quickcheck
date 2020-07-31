@@ -1,4 +1,16 @@
 releases:
+  - version: "0.0.10.0"
+    changes:
+      - description: "Support servant-server-0.18 (#72)"
+        authors: maksbotan
+        date: 2020-07-31
+
+  - version: "0.0.9.1"
+    changes:
+      - description: "Fix lower version bounds for servant packages. (7926ad6b)"
+        authors: fisx
+        date: 2020-07-10
+
   - version: "0.0.9.0"
     changes:
       - description: "Support servant-0.15 (#65)"
