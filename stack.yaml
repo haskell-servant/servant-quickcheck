@@ -1,10 +1,12 @@
-resolver: nightly-2018-09-03
+resolver:
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/2.yaml
+
 packages:
 - '.'
-extra-deps:
-- hspec-discover-2.5.6
-- hspec-core-2.5.6
-- hspec-2.5.6
-- QuickCheck-2.12
+extra-deps: []
+#- hspec-discover-2.5.6
+#- hspec-core-2.5.6
+#- hspec-2.5.6
+#- QuickCheck-2.12
 flags: {}
 extra-package-dbs: []

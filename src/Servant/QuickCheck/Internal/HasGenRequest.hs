@@ -82,6 +82,10 @@ instance (Arbitrary c, HasGenRequest b, ToHttpApiData c )
         (oldf, old) = genRequest (Proxy :: Proxy b)
         new = arbitrary :: Gen c
 
+instance HasGenRequest a
+    => HasGenRequest (Fragment f :> a) where
+    genRequest _ = genRequest (Proxy :: Proxy a)
+
 instance (Arbitrary c, HasGenRequest b, ToHttpApiData c )
     => HasGenRequest (CaptureAll x c :> b) where
     genRequest _ = (oldf, do
@@ -195,3 +199,4 @@ instance (HasGenRequest a) => HasGenRequest (WithNamedContext x y a) where
 -- TODO: Try logging in
 instance (HasGenRequest a) => HasGenRequest (BasicAuth x y :> a) where
     genRequest _ = genRequest (Proxy :: Proxy a)
+
