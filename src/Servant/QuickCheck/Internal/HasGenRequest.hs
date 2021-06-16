@@ -82,6 +82,16 @@ instance (Arbitrary c, HasGenRequest b, ToHttpApiData c )
         (oldf, old) = genRequest (Proxy :: Proxy b)
         new = arbitrary :: Gen c
 
+instance (Arbitrary a, HasGenRequest b, ToHttpApiData a)
+    => HasGenRequest (Fragment a :> b) where
+    genRequest _ = (oldf, do
+      old' <- old
+      new' <- toUrlPiece <$> new
+      return $ \burl -> let r = old' burl in r { path = path r <> cs new' })
+      where
+        (oldf, old) = genRequest (Proxy :: Proxy b)
+        new = arbitrary :: Gen a
+      
 instance (Arbitrary c, HasGenRequest b, ToHttpApiData c )
     => HasGenRequest (CaptureAll x c :> b) where
     genRequest _ = (oldf, do
@@ -195,3 +205,4 @@ instance (HasGenRequest a) => HasGenRequest (WithNamedContext x y a) where
 -- TODO: Try logging in
 instance (HasGenRequest a) => HasGenRequest (BasicAuth x y :> a) where
     genRequest _ = genRequest (Proxy :: Proxy a)
+
