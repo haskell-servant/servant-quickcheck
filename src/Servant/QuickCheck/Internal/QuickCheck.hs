@@ -3,7 +3,7 @@
 module Servant.QuickCheck.Internal.QuickCheck where
 
 import           Control.Concurrent       (tryReadMVar, newEmptyMVar, tryPutMVar)
-import           Control.Monad            (unless)
+import           Control.Monad            (unless, join)
 import qualified Data.ByteString.Lazy     as LBS
 import           Data.Proxy               (Proxy)
 import qualified Network.HTTP.Client      as C
@@ -26,7 +26,6 @@ import Servant.QuickCheck.Internal.Equality
 import Servant.QuickCheck.Internal.ErrorTypes
 import Servant.QuickCheck.Internal.HasGenRequest
 import Servant.QuickCheck.Internal.Predicates
-
 
 -- | Start a servant application on an open port, run the provided function,
 -- then stop the application.
@@ -95,6 +94,8 @@ serversEqual api burl1 burl2 args req = do
       case mx of
         Just x ->
           expectationFailure $ "Failed:\n" ++ show x
+        Nothing | Just exc <- theException ->
+          expectationFailure $ "Failed with exception:\n" <> show exc
         Nothing ->
           expectationFailure $ "We failed to record a reason for failure: " <> show r
     GaveUp { numTests = n } -> expectationFailure $ "Gave up after " ++ show n ++ " tests"
@@ -142,17 +143,19 @@ serverSatisfiesMgr api manager burl args preds = do
     v <- run $ finishPredicates preds (noCheckStatus req) manager
     _ <- run $ tryPutMVar deetsMVar v
     case v of
-      Just _ -> assert False
+      Just exc -> assert False
       _ -> return ()
   case r of
     Success {} -> return ()
     Failure {..} -> do
       mx <- tryReadMVar deetsMVar
-      case mx of
+      case join mx of
         Just x ->
-          expectationFailure $ "Failed:\n" ++ show x
+          expectationFailure $ "Failed predicate:\n" ++ show x
+        Nothing | Just exc <- theException ->
+          expectationFailure $ "Failed with exception:\n" <> show exc
         Nothing ->
-          expectationFailure $ "We failed to record a reason for failure: " <> show r
+          expectationFailure $ "We failed to record a reason for failure:\n" <> show r
     GaveUp { numTests = n } -> expectationFailure $ "Gave up after " ++ show n ++ " tests"
     NoExpectedFailure {} -> expectationFailure $ "No expected failure"
 #if MIN_VERSION_QuickCheck(2,12,0)
@@ -174,8 +177,8 @@ serverDoesntSatisfyMgr api manager burl args preds = do
   case r of
     Success {} -> return ()
     GaveUp { numTests = n } -> expectationFailure $ "Gave up after " ++ show n ++ " tests"
-    Failure { output = m } -> expectationFailure $ "Failed:\n" ++ show m
-    NoExpectedFailure {} -> expectationFailure $ "No expected failure"
+    Failure { output = m }  -> expectationFailure $ "Failed:\n" ++ show m
+    NoExpectedFailure {}    -> expectationFailure $ "No expected failure"
 #if MIN_VERSION_QuickCheck(2,12,0)
 #else
     InsufficientCoverage {} -> expectationFailure "Insufficient coverage"
