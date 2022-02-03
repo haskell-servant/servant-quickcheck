@@ -1,4 +1,5 @@
 # servant-quickcheck
+[![Build status](https://github.com/haskell-servant/servant-quickcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/haskell-servant/servant-quickcheck/actions/workflows/ci.yml)
 
 `servant-quickcheck` provides tools to test properties across entire APIs.
 Rather than writing the same tests for each endpoint, with `servant-quickcheck`
