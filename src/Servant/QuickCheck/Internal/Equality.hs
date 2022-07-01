@@ -1,10 +1,12 @@
+ {-# OPTIONS_GHC -Wno-orphans #-}
+
 module Servant.QuickCheck.Internal.Equality where
 
 import Data.Aeson          (Value, decode, decodeStrict)
 import Data.ByteString     (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Function       (on)
-import Network.HTTP.Client (Response, responseBody)
+import Network.HTTP.Client (Response(..), responseBody, equivCookieJar)
 import Data.Semigroup      (Semigroup (..))
 import Prelude.Compat
 
@@ -18,6 +20,16 @@ instance Semigroup (ResponseEquality b) where
 instance Monoid (ResponseEquality b) where
   mempty = ResponseEquality $ \_ _ -> True
   mappend = (<>)
+
+instance Eq body => Eq (Response body) where
+  resp == resp' = and
+    [ responseStatus resp == responseStatus resp'
+    , responseVersion resp == responseVersion resp'
+    , responseHeaders resp == responseHeaders resp'
+    , responseBody resp == responseBody resp'
+    , responseCookieJar resp `equivCookieJar` responseCookieJar resp'  -- !
+    -- , responseClose  -- !
+    ]
 
 -- | Use `Eq` instance for `Response`
 --
